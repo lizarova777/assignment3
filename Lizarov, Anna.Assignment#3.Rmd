@@ -1,0 +1,216 @@
+---
+title: 'Lizarov, Anna. Assignment #3'
+author: "Anna Lizarov"
+date: "October 30, 2018"
+output: html_document
+---
+
+## Part I
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+```{r}
+(K1 <- read.csv("Class_Motivation.csv", header=TRUE))
+```
+
+```{r}
+(K2 <- K1[,-1])
+```
+
+```{r}
+K3 <- na.omit(K2) #This command create a data frame with only those people with no missing values. It "omits" all rows with missing values, also known as a "listwise deletion". EG - It runs down the list deleting rows as it goes.
+
+```
+
+```{r}
+#Standardizing values
+K3 <- scale(K3)
+```
+
+# 2 Clusters
+```{r}
+fit <- kmeans(K3, 2)
+fit$cluster
+(K4 <- data.frame(K3, fit$cluster))
+
+```
+
+```{r}
+names(K4) <- c("1", "2", "3", "4", "5", "Cluster")
+```
+
+   #Visualizing the 2 clusters. 
+```{r}
+K5 <- K4 %>% gather(Week,Scores, "1", "2", "3", "4", "5", convert=FALSE) %>% group_by(Week, Cluster)  
+```
+
+```{r}
+K6 <- K5 %>% summarize(Avg_Score=mean(Scores)) %>% print
+```
+```{r}
+K6$Week <- as.numeric(K6$Week)
+
+K6$Cluster <- as.factor(K6$Cluster) 
+
+```
+
+```{r}
+ggplot(K6, aes(x=Week, y=Avg_Score, color= Cluster))+
+  geom_line() +xlab("Week") + ylab("Average Motivation")
+```
+```{r}
+# Indiviudals in cluster 1, on average, have negative motivation scores as opposed to those in cluster 2. Furthermore, The average scores for both clusters are fluctuating. For cluster 1, there is an increase in the average motivation score in Week 3 and  Week 5. In cluser 2, however, there is an increase in the average motivation score in Week 2 and Week 4. In other words, if there is increase of motivation scores in cluster 1 during a particular week, there is a decrease of of motivation scores in cluster 2 in that week. 
+```
+
+```{r}
+# The number of people in each cluster
+(K7 <- count(K5, Cluster, sort=FALSE))
+```
+
+# 3 Clusters
+```{r}
+fit2 <- kmeans(K3, 3)
+fit2$cluster
+(K8 <- data.frame(K3, fit2$cluster))
+```
+
+```{r}
+names(K8) <- c("1", "2", "3", "4", "5", "Cluster")
+```
+
+      #Visualizing the 3 clusters. 
+```{r}
+K9 <- K8 %>% gather(Week,Scores, "1", "2", "3", "4", "5", convert=FALSE) %>% group_by(Week, Cluster)  
+```
+
+```{r}
+K10 <- K9 %>% summarize(Avg_Score=mean(Scores)) %>% print
+```
+
+```{r}
+K10$Week <- as.numeric(K10$Week)
+
+K10$Cluster <- as.factor(K10$Cluster) 
+```
+
+```{r}
+ggplot(K10, aes(x=Week, y=Avg_Score, color= Cluster))+
+  geom_line() +xlab("Week") + ylab("Average Motivation")
+```
+
+```{r}
+# The average motivation scores range from -1.5 to 1.25. For cluster 1, the average motivation score tends to be decreasing, with a slight increase in Week 3. Nonetheless, for clusters 2 and 3, the average motivation scores were fluctuating. However, starting from Week 3, there was an increasing trend of average motivation scores for cluster 2. Nevertheless, it can be said that there were negative average  motivation scores for cluster 3 and around zero for cluster 2. 
+```
+
+
+```{r}
+# The number of people in each cluster
+(K11 <- count(K9, Cluster, sort=FALSE))
+```
+```{r}
+# The cluster grouping with 3 clusters is more informative as the number of individuals is similar across the clusters or groups. Also, the line graph with three clusters paints a clearer picture of the distribution of motivation scores as opposed to one with two clusters. 
+```
+
+## Part II
+```{r}
+(DF <- read.csv("HUDK405018-cluster.csv", header = TRUE))
+```
+```{r}
+DF1 <-  select(DF, Q1_1,Q1_2, Q2_1,Q2_2,Q2_3,Q2_4,Q2_5,Q2_6,Q2_7)
+DF1 <- DF1[-(1:2),]
+DF1[DF1==""] <- NA
+DF1 <- na.omit(DF1)  #omitting NAs
+names(DF1) <- c("City", "Country", "Activity1", "Activity2", "Acitivity3", "Acitivity4", "Acitivity5", "Acitivity6", "Acitivity7")
+DF1
+```
+
+# Cluster By Region
+```{r}
+library(ggmap)
+DF2 <- geocode(as.character(DF1$Country), output = "latlon", source = "dsk")   #country
+DF2
+
+```
+```{r}
+DF2a <- scale(as.matrix(DF2))
+(DF2a <- data.frame(DF2a))
+```
+      # 4 clusters
+```{r}
+fit4 <- kmeans(DF2a, 4)
+fit4$cluster
+DF6 <- data.frame(DF2a, fit4$cluster)
+names(DF6) <- c("Longitude", "Latitude", "Cluster")
+DF6$Cluster <- as.factor(DF6$Cluster)
+DF6
+```
+```{r}
+# Scatterplot that plots the region of each student and colors the points according to their cluster 
+library(ggplot2)
+ggplot(DF6,aes(x=Longitude, y=Latitude, color=Cluster))+
+  geom_point()
+```
+```{r}
+# The number of people in each cluster
+(DF7 <- count(DF6, Cluster, sort=FALSE))
+```
+`
+
+# Cluster By Answers to Questions
+
+```{r}
+DF8 <- DF1[,-(1:2)]
+DF9 <-data.matrix(DF8)
+DF9 <- scale(DF9)
+DF9 <- data.frame(DF9)                   
+rownames(DF9) <- NULL
+DF9
+
+```
+
+ 
+
+    # 4 clusters
+```{r}
+fit6 <- kmeans(DF9,4)
+fit6$cluster
+DF13 <- data.frame(DF9,fit6$cluster)
+names(DF13) <- c("1", "2","3","4", "5","6", "7", "Cluster")
+DF13
+```
+
+```{r}
+DF14 <- DF13 %>% gather(Activity, Hours, 1:7, convert=FALSE) %>% group_by(Activity, Cluster)
+DF14$Hours <- as.numeric(DF14$Hours)
+DF14a <-summarize(DF14, Avg_Hours=mean(Hours))
+DF14a$Activity <- as.numeric(DF14a$Activity)
+DF14a$Cluster <- as.factor(DF14a$Cluster)
+DF14a
+```
+```{r}
+ggplot(DF14a, aes(x=Activity, y=Avg_Hours, color=Cluster))+
+  geom_line() + xlab("Activity Type") + ylab("Average Number of Hours Spent")
+```
+```{r}
+# The number of people in each cluster
+(DF15 <- count(DF14, Cluster, sort=FALSE))
+```
+
+## Part III
+```{r}
+(DF17 <- data.frame(DF6,DF13))
+```
+```{r}
+colnames(DF17)[3] <- "Cluster_Region"
+colnames(DF17)[11]<- "Cluster_Activity"
+DF17$Cluster_Activity<- as.factor(DF17$Cluster_Activity)
+```
+
+```{r}
+ggplot(DF17, aes(x=Longitude, y=Latitude, color= Cluster_Region, shape=Cluster_Activity )) +
+  geom_point() 
+```
+
