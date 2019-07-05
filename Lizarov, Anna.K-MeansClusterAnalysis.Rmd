@@ -1,35 +1,61 @@
 ---
-title: 'Lizarov, Anna. Assignment #3'
+title: 'K-Means Cluster Analysis'
 author: "Anna Lizarov"
 date: "October 30, 2018"
 output: html_document
 ---
 
+K-means clustering algorithm will be applied. At the following link you can find a description of K-means:
+
 ## Part I
+
+https://www.cs.uic.edu/~wilkinson/Applets/cluster.html
+# Libraries
 ```{r}
 library(dplyr)
 library(tidyr)
 library(ggplot2)
+library(vcd)
 ```
 
+# Dataset
 ```{r}
 (K1 <- read.csv("Class_Motivation.csv", header=TRUE))
 ```
+This file contains the self-reported motivation scores for a class over five weeks. We are going to look for patterns in motivation over this time and sort people into clusters based on those patterns.
 
+But before we do that, we will need to manipulate the data frame into a structure that can be analyzed by our clustering algorithm.
+
+The algorithm will treat each row as a value belonging to a person, so we need to remove the id variable.
 ```{r}
 (K2 <- K1[,-1])
 ```
+It is important to think about the meaning of missing values when clustering. We could treat them as having meaning or we could remove those people who have them. Neither option is ideal. What problems do you foresee if we recode or remove these values? Write your answers below:
+
+We will remove people with missing values for this assignment, but keep in mind the issues that you have identified.
 
 ```{r}
 K3 <- na.omit(K2) #This command create a data frame with only those people with no missing values. It "omits" all rows with missing values, also known as a "listwise deletion". EG - It runs down the list deleting rows as it goes.
 
 ```
 
+Another pre-processing step used in K-means is to standardize the values so that they have the same range. We do this because we want to treat each week as equally important - if we do not standardise then the week with the largest range will have the greatest impact on which clusters are formed. We standardise the values by using the "scale()" command.
+
 ```{r}
 #Standardizing values
 K3 <- scale(K3)
 ```
+Now we will run the K-means clustering algorithm. 
+1) The algorithm starts by randomly choosing some starting values 
+2) Associates all observations near to those values with them
+3) Calculates the mean of those clusters of values
+4) Selects the observation closest to the mean of the cluster
+5) Re-associates all observations closest to this observation
+6) Continues this process until the clusters are no longer changing
 
+Notice that in this case we have 5 variables and in class we only had 2. It is impossible to vizualise this process with 5 variables.
+
+Also, we need to choose the number of clusters we think are in the data. We will start with 2.
 # 2 Clusters
 ```{r}
 fit <- kmeans(K3, 2)
@@ -41,15 +67,29 @@ fit$cluster
 ```{r}
 names(K4) <- c("1", "2", "3", "4", "5", "Cluster")
 ```
+Now we need to visualize the clusters we have created. To do so we want to play with the structure of our data. What would be most useful would be if we could visualize average motivation by cluster, by week. To do this we will need to convert our data from wide to long format. Remember your old friends tidyr and dplyr!
 
-   #Visualizing the 2 clusters. 
+First lets use tidyr to convert from wide to long format.
+# Visualizing the 2 clusters. 
 ```{r}
 K5 <- K4 %>% gather(Week,Scores, "1", "2", "3", "4", "5", convert=FALSE) %>% group_by(Week, Cluster)  
 ```
 
+Now lets use dplyr to average our motivation values by week and by cluster.
 ```{r}
 K6 <- K5 %>% summarize(Avg_Score=mean(Scores)) %>% print
 ```
+Now it's time to do some visualization: 
+
+https://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html
+
+And you can see the range of available graphics in ggplot here:
+
+http://ggplot2.tidyverse.org/reference/index.html
+
+We are going to create a line plot similar to the one created in the school dropout paper we looked at in class (Bowers, 2010). It will have motivation on the Y-axis and weeks on the X-axis. To do this we will want our weeks variables to be treated as a number, but because it was created from a variable name it is currently being treated as a character variable. You can see this if you click on the arrow on the left of K6 in the Data pane. Week is designated by "chr". To convert it to numeric, we use the as.numeric command. 
+
+Likewise, since "cluster" is not numeric but rather a categorical label we want to convert it from an "integer" format to a "factor" format so that ggplot does not treat it as a number. We can do this with the as.factor() command.
 ```{r}
 K6$Week <- as.numeric(K6$Week)
 
@@ -57,6 +97,12 @@ K6$Cluster <- as.factor(K6$Cluster)
 
 ```
 
+Now we can plot our line plot using the ggplot command, "ggplot()".
+
+- The first argument in a ggplot is the dataframe we are using: K6
+- Next is what is called an aesthetic (aes), the aesthetic tells ggplot which variables to use and how to use them. Here we are using the variables "week" and "avg" on the x and y axes and we are going color these variables using the "cluster" variable
+- Then we are going to tell ggplot which type of plot we want to use by specifiying a "geom()", in this case a line plot: geom_line()
+- Finally we are going to clean up our axes labels: xlab("Week") & ylab("Average Motivation")
 ```{r}
 ggplot(K6, aes(x=Week, y=Avg_Score, color= Cluster))+
   geom_line() +xlab("Week") + ylab("Average Motivation")
@@ -115,6 +161,9 @@ ggplot(K10, aes(x=Week, y=Avg_Score, color= Cluster))+
 ```
 
 ## Part II
+
+Now, try to do the same for the data collected in class. Create two sets of clusters, the answers to the questions and regions where people grew up. 
+
 ```{r}
 (DF <- read.csv("HUDK405018-cluster.csv", header = TRUE))
 ```
@@ -200,6 +249,9 @@ ggplot(DF14a, aes(x=Activity, y=Avg_Hours, color=Cluster))+
 ```
 
 ## Part III
+
+Create a visualization that shows the overlap between the two groups of clusters you created in part III.
+
 ```{r}
 (DF17 <- data.frame(DF6,DF13))
 ```
@@ -212,5 +264,16 @@ DF17$Cluster_Activity<- as.factor(DF17$Cluster_Activity)
 ```{r}
 ggplot(DF17, aes(x=Longitude, y=Latitude, color= Cluster_Region, shape=Cluster_Activity )) +
   geom_point() 
+```
+
+##or
+```{r}
+Cluster_Activity = DF17$Cluster_Activity
+Cluster_Region = DF17$Cluster_Region
+
+P1 <- structable(Cluster_Activity ~ Cluster_Region)
+mosaic(P1, shade=TRUE, legend=TRUE) 
+#This shows how much overlap there are between the groups of clusters
+
 ```
 
